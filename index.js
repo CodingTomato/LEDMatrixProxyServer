@@ -3,7 +3,7 @@ const axios = require('axios').default;
 const express = require('express')
 const app = express()
  
-const key = "insertspotify key here"
+const key = "BQBxiqnig1OpAPSWD4hmVsQISAYQ12NoHOjeFHerLzhM8kxMXQtVP0Y32ug3xqpzPrTIiQnDFwuhOhj7T1MV4j8zn4NpK6E-W379Fo6qFKAz7ko_oTInwK5BjYU2O49KUXuWa5Jc59QayCs0KkihzQ"
 
 app.get('/getPlayingPicture', function (req, res) {
     axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers: { Authorization: `Bearer ${key}` } })
