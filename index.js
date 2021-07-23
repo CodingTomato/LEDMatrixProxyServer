@@ -105,6 +105,7 @@ app.get('/auth-success', function (req, res) {
 app.get('/getTime', function (req, res) {
     res.send(Date.now().toString());
 });
+<<<<<<< HEAD
 
 function refreshOauthToken(){
     const params = new URLSearchParams();
@@ -136,3 +137,7 @@ function refreshOauthToken(){
 }
 
 app.listen(3000)
+=======
+ 
+app.listen(3000)
+>>>>>>> b4b3af2f25b2a5afe5678ffb81d7083978c482c8
