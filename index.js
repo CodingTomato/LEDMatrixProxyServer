@@ -1,4 +1,6 @@
 const axios = require('axios').default;
+const fs = require('fs');
+const jimp = require('jimp');
 require('dotenv').config()
 
 const express = require('express')
@@ -18,6 +20,42 @@ let expires_in = 0;
 
 let refreshInterval = 0;
 
+async function downloadImageFromURL(url) {
+    const path = "images/image.jfif";
+
+    return axios
+        .get(url, {
+            responseType: 'arraybuffer'
+        })
+        .then(response => {
+            fs.writeFile(path, Buffer.from(response.data), (err) => {
+                if (err) {
+                    console.error(err);
+                }
+            });
+        });
+}
+
+function convertImage2RGB565() {
+    return new Promise((resolve) => {
+        jimp.read('images/image.jfif', (err, image) => {
+            let rgb565String = "";
+
+            image.scan(0, 0, 64, 64, (x, y, idx) => {
+                const red = image.bitmap.data[idx + 0];
+                const green = image.bitmap.data[idx + 1];
+                const blue = image.bitmap.data[idx + 2];
+
+                const Rgb565 = (((red & 0xf8) << 8) + ((green & 0xfc) << 3) + (blue >> 3));
+
+                rgb565String += Rgb565 + ",";
+            });
+
+            resolve(rgb565String);
+        });
+    });
+}
+
 app.get('/getPlayingPicture', function (req, res) {
     axios.get('https://api.spotify.com/v1/me/player/currently-playing', { headers: { Authorization: `Bearer ${token}` } })
         .then(function (response) {
@@ -32,10 +70,13 @@ app.get('/getPlayingPicture', function (req, res) {
 
                 axios.get('https://api.spotify.com/v1/tracks/' + songid, { headers: { Authorization: `Bearer ${token}` } })
                     .then(function (response) {
-                        response.data.album.images.forEach(image => {
+                        response.data.album.images.forEach(async image => {
                             if (image.height == 64 && image.width == 64) {
                                 console.log("Found image!", image.url)
-                                res.send(image.url);
+                                await downloadImageFromURL(image.url);
+                                const rgb565String = await convertImage2RGB565();
+
+                                res.send(rgb565String);
                             }
                         });
                     })
@@ -76,8 +117,8 @@ app.get('/auth-success', function (req, res) {
         params.append('redirect_uri', redirect_uri);
 
         axios.post(
-            'https://accounts.spotify.com/api/token', 
-            params, 
+            'https://accounts.spotify.com/api/token',
+            params,
             { headers: { Authorization: `Basic ${Buffer.from(client_id + ":" + client_secret).toString('base64')}` } }
         )
             .then(function (response) {
@@ -86,7 +127,7 @@ app.get('/auth-success', function (req, res) {
                     refresh_token = response.data.refresh_token;
                     expires_in = response.data.expires_in;
 
-                    refreshInterval = setInterval(refreshOauthToken, (expires_in-200)*1000)
+                    refreshInterval = setInterval(refreshOauthToken, (expires_in - 200) * 1000)
 
                     res.send("success! " + token);
                 } else {
@@ -106,14 +147,14 @@ app.get('/getTime', function (req, res) {
     res.send(Date.now().toString());
 });
 
-function refreshOauthToken(){
+function refreshOauthToken() {
     const params = new URLSearchParams();
     params.append('grant_type', 'refresh_token');
     params.append('refresh_token', refresh_token);
 
     axios.post(
-        'https://accounts.spotify.com/api/token', 
-        params, 
+        'https://accounts.spotify.com/api/token',
+        params,
         { headers: { Authorization: `Basic ${Buffer.from(client_id + ":" + client_secret).toString('base64')}` } }
     )
         .then(function (response) {
@@ -122,7 +163,7 @@ function refreshOauthToken(){
                 //refresh_token = response.data.refresh_token;
                 expires_in = response.data.expires_in;
 
-                refreshInterval = setInterval(refreshOauthToken, (expires_in-200)*1000)
+                refreshInterval = setInterval(refreshOauthToken, (expires_in - 200) * 1000)
 
                 console.log("success! ");
             } else {
